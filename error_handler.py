@@ -19,12 +19,27 @@ def calculate_crc(dataword, polynomial):
     # Return the CRC remainder
     return ''.join(padded_data)[-n+1:]
 
-def inject_error(codeword):
+
+def calculate_checksum(data):
+    if len(data) % 16 != 0:
+        padding_needed = 16 - (len(data) % 16)
+        data = '0' * padding_needed + data
+        
+    words = [data[i:i+16] for i in range(0, len(data), 16)]
+    
+    total_sum = '0' * 16
+    for word in words:
+        sum_val = int(total_sum, 2) + int(word, 2)
+        if sum_val > 0xFFFF: # Handle carry
+            sum_val = (sum_val & 0xFFFF) + 1
+        total_sum = format(sum_val, '016b')
+
+    checksum = ''.join('1' if bit == '0' else '0' for bit in total_sum)
+    return checksum
+
+def inject_error(codeword,error_type='single'):
     codeword_list = list(codeword)
     length = len(codeword_list)
-
-    error_type = input("Select error type (single, two_isolated, odd, burst): ")
-    print(f"\nInjecting a '{error_type}' error...")
     if error_type == 'single':
         pos = random.randint(0, length - 1)
         codeword_list[pos] = '1' if codeword_list[pos] == '0' else '0'
@@ -71,3 +86,9 @@ def verify_crc(codeword, polynomial):
 
     # If the remainder contains any '1's, an error is present
     return '1' not in remainder
+
+def verify_checksum(data_with_checksum,redundant_bits_cnt=16):
+    data = data_with_checksum[:-redundant_bits_cnt]
+    checksum = data_with_checksum[-redundant_bits_cnt:]
+    calculated_checksum = calculate_checksum(data)
+    return calculated_checksum == checksum

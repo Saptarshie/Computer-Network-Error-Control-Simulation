@@ -1,6 +1,6 @@
 # utils.py  -- use this exact file (sender_port is 2 bytes / 16 bits)
 
-from error_handler import calculate_crc, verify_crc
+from error_handler import calculate_crc, verify_crc , calculate_checksum,verify_checksum
 
 # --- Field widths (bits) ---
 SENDER_IP_LEN = 32
@@ -111,8 +111,7 @@ class DataFrame:
     def validate(self):
         redundant_bit_type = self.getRedundantBitType()
         if redundant_bit_type == "checksum":
-            # TODO: checksum handling if you want it
-            return False
+            return verify_checksum(self.data)
         else:
             # Handle unknown redundancy types safely
             if redundant_bit_type not in CRC_POLY:
@@ -183,7 +182,10 @@ class DataFrame:
                 + chunk
                 + padding
             )
-            data += calculate_crc(data, CRC_POLY[redundant_bits_type])
+            if redundant_bits_type == "checksum":
+                data += calculate_checksum(data)
+            else:
+                data += calculate_crc(data, CRC_POLY[redundant_bits_type])
             print("length : ", len(data))  # printed length is in bits
             frames.append(cls(data))
         return frames

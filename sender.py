@@ -1,5 +1,6 @@
 from communication_handler import sendFrame
 from utils import DataFrame,ascii_to_bin,hex_to_bin,bytes_to_bits
+from error_handler import inject_error
 import os
 from dotenv import load_dotenv
 
@@ -13,7 +14,7 @@ RECEIVER_PORT = hex_to_bin(str(os.getenv('RECEIVER_PORT')))
 
 sender_addr = (SENDER_IP, SENDER_PORT)
 receiver_addr = (RECEIVER_IP, RECEIVER_PORT)
-redundant_bit_type = "crc-16"
+redundant_bit_type = "checksum"
 # Send a file to the receiver
 def sendFile(filename,binary=None):
     """
@@ -49,6 +50,7 @@ def sendFile(filename,binary=None):
     print(f"Sending {number_of_frames} frames")
     # print("data to sent : ", data_bits)
     for frame in frames:
+        # sendFrame(inject_error(frame.serialize(),error_type='burst'))
         sendFrame(frame.serialize())
 
 if __name__ == "__main__":
