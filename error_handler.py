@@ -2,38 +2,22 @@ import socket
 import sys
 import random
 
-# Define 48-bit sender and receiver addresses
-SENDER_ADDR = '110011001100110011001100110011001100110011001100'
-RECEIVER_ADDR = '001100110011001100110011001100110011001100110011'
-
-def hex_to_binary(hex_str):
-    """Converts a hexadecimal string to a binary string."""
-    try:
-        return bin(int(hex_str, 16))[2:]
-    except ValueError:
-        return None
-
 def calculate_crc(dataword, polynomial):
     """
     Calculates the CRC for a given dataword and polynomial.
     """
-    # --- Step 1: Append n-1 zeros to the dataword ---
-    # n is the length of the polynomial (number of bits)
+    # Convert strings to lists for mutable operations
     n = len(polynomial)
-    padded_data = dataword + '0' * (n - 1)
-    padded_data_list = list(padded_data)
-
-    # --- Step 2: Perform polynomial division (XOR operations) ---
+    padded_data = list(dataword + '0' * (n-1))
+    
+    # Perform polynomial division
     for i in range(len(dataword)):
-        # If the current bit is '1', perform XOR
-        if padded_data_list[i] == '1':
+        if padded_data[i] == '1':
             for j in range(n):
-                # XOR the current data segment with the polynomial
-                padded_data_list[i + j] = str(int(padded_data_list[i + j]) ^ int(polynomial[j]))
-
-    # --- Step 3: The remainder is the CRC code ---
-    crc_code = "".join(padded_data_list)[-n+1:]
-    return crc_code
+                padded_data[i+j] = str(int(padded_data[i+j]) ^ int(polynomial[j]))
+    
+    # Return the CRC remainder
+    return ''.join(padded_data)[-n+1:]
 
 def inject_error(codeword):
     codeword_list = list(codeword)
@@ -76,7 +60,7 @@ def inject_error(codeword):
 def verify_crc(codeword, polynomial):
     n = len(polynomial)
     codeword_list = list(codeword)
-    for i in range(len(codeword) - (n - 1)):
+    for i in range(len(codeword) - n + 1):
         if codeword_list[i] == '1':
             for j in range(n):
                 codeword_list[i + j] = str(int(codeword_list[i + j]) ^ int(polynomial[j]))
@@ -84,6 +68,6 @@ def verify_crc(codeword, polynomial):
     # The remainder is the last n-1 bits of the result
     remainder = "".join(codeword_list)[-(n-1):]
     print(f"Receiver's CRC Calculation (Remainder): {remainder}")
-    
+
     # If the remainder contains any '1's, an error is present
     return '1' not in remainder
