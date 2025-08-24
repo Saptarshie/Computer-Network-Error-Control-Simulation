@@ -18,7 +18,7 @@ REDUNDANT_BITS_CNT= {
 class DataFrame:
     def __init__(self, data=None, sender_ip=None, sender_port=None, receiver_ip=None, 
              receiver_port=None, redundant_bit_type="crc-16", padding=0, isLast=False):
-        if data is not None:
+        if sender_ip is None:
             # Single parameter case
             self.data = data
         else:
@@ -56,18 +56,21 @@ class DataFrame:
                 return False
         
     @classmethod
-    def createFrames(cls, data, sender_addr, receiver_addr, redundant_bits_type="crc-16",frame_size=64):
+    def createFrames(cls, data2send, sender_addr, receiver_addr, redundant_bits_type="crc-16",frame_size=64):
 
-        chunk_size = frame_size-14-REDUNDANT_BITS_CNT[redundant_bits_type]
+        chunk_size = 8*(frame_size-14-REDUNDANT_BITS_CNT[redundant_bits_type])
         sender_ip,sender_port = sender_addr
         receiver_ip,receiver_port = receiver_addr
         frames = []
-        for i in range(0,len(data),chunk_size):
-            chunk = data[i:i+chunk_size]
+        for i in range(0,len(data2send),chunk_size):
+            chunk = data2send[i:i+chunk_size]
             padding = "0"*(chunk_size-len(chunk))
-            isLast = "0" if i+chunk_size<len(data) else "1"
+            isLast = "0" if i+chunk_size<len(data2send) else "1"
+            print("isLast : ",isLast)
+            print("sender_ip_len : ",len(sender_ip),"receiver_ip_len : ",len(receiver_ip),"sender_port_len : ",len(sender_port),"receiver_port_len : ",len(receiver_port),"data_len : ",len(chunk),"padding_len : ",len(padding))
             data = sender_ip+sender_port+receiver_ip+receiver_port+str(len(chunk)).zfill(8)+isLast+REDUNDANT_BIT_CODE[redundant_bits_type]+chunk+padding
             data+=calculate_crc(data,CRC_POLY[redundant_bits_type])
+            print("length : ",len(data))
             frames.append(cls(data))
         return frames
         
@@ -91,3 +94,80 @@ def bin_to_ascii(b: str) -> str:
     else:
         return ''.join(format(ord(ch), '08b') for ch in b)
 
+
+def hex_to_bin(s: str) -> str:
+    """
+    Convert a hex string to a continuous binary string (zero-padded, 4 bits per hex digit).
+
+    Accepts:
+      - Optional '0x' prefix
+      - Whitespace/underscores
+      - Common separators (':' or '-') e.g., MAC addresses
+
+    Examples:
+      hex_to_bin("0x1A3")        -> "000110100011"
+      hex_to_bin("1a3")          -> "000110100011"
+      hex_to_bin("DE:AD:BE:EF")  -> "11011110101011011011111011101111"
+      hex_to_bin("de-ad_be ef")  -> same as above
+    """
+    if s is None:
+        raise ValueError("Input cannot be None")
+
+    # Normalize input
+    s = s.strip().lower().replace("_", "").replace(" ", "")
+    for sep in (":", "-"):
+        s = s.replace(sep, "")
+    if s.startswith("0x"):
+        s = s[2:]
+
+    if s == "":
+        return ""
+
+    # Validate and convert
+    try:
+        n = int(s, 16)
+    except ValueError:
+        raise ValueError("Invalid hex string") from None
+
+    # Preserve leading zeros present in the hex by padding to 4*len(s) bits
+    width = 4 * len(s)
+    return format(n, f"0{width}b")
+
+
+def bin_to_hex(b: str) -> str:
+    """
+    Convert a binary string to a hex string (uppercase, zero-padded to full nibbles).
+
+    Accepts:
+      - Optional '0b' prefix
+      - Whitespace/underscores
+      - Grouped bits with spaces or separators
+
+    Examples:
+      bin_to_hex("0b000110100011") -> "1A3"
+      bin_to_hex("1101111010101101") -> "DEAD"
+      bin_to_hex("1101 1110 1010 1101") -> "DEAD"
+    """
+    if b is None:
+        raise ValueError("Input cannot be None")
+
+    # Normalize input
+    b = b.strip().replace("_", "").replace(" ", "")
+    if b.startswith("0b"):
+        b = b[2:]
+
+    if b == "":
+        return ""
+
+    # Validate binary
+    if not all(ch in "01" for ch in b):
+        raise ValueError("Invalid binary string")
+
+    # Pad to multiple of 4 bits for clean hex conversion
+    pad_len = (4 - len(b) % 4) % 4
+    b = "0" * pad_len + b
+
+    # Convert to hex (uppercase, no '0x')
+    n = int(b, 2)
+    width = len(b) // 4
+    return format(n, f"0{width}X")

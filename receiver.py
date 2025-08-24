@@ -1,14 +1,14 @@
 from communication_handler import receiveFrame
-from utils import DataFrame,bin_to_ascii
+from utils import DataFrame,bin_to_ascii,hex_to_bin
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SENDER_IP = str(os.getenv('SENDER_IP'))
-SENDER_PORT = str(os.getenv('SENDER_PORT'))
-RECEIVER_IP = str(os.getenv('RECEIVER_IP'))
-RECEIVER_PORT = str(os.getenv('RECEIVER_PORT'))
+SENDER_IP = hex_to_bin(str(os.getenv('SENDER_IP')))
+SENDER_PORT = hex_to_bin(str(os.getenv('SENDER_PORT')))
+RECEIVER_IP = hex_to_bin(str(os.getenv('RECEIVER_IP')))
+RECEIVER_PORT = hex_to_bin(str(os.getenv('RECEIVER_PORT')))
 
 def receiver():
     receiver_data = ""
@@ -22,11 +22,12 @@ def receiver():
             else:
                 print("Error: Invalid frame received : ",frame.getData())
                 receiver_data+= frame.getData()
+            print("isLast : ",frame.isLast())
             if frame.isLast():
                 print("Last frame received")
                 break
     print("Received data : ",receiver_data)
-
+    print("Data length : ",len(receiver_data))
     receiver_file_name = "receiver.txt"
     with open(receiver_file_name,"w") as f:
         f.write(bin_to_ascii(receiver_data))

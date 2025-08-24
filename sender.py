@@ -1,14 +1,14 @@
 from communication_handler import sendFrame
-from utils import DataFrame,ascii_to_bin
+from utils import DataFrame,ascii_to_bin,hex_to_bin
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SENDER_IP = str(os.getenv('SENDER_IP'))
-SENDER_PORT = str(os.getenv('SENDER_PORT'))
-RECEIVER_IP = str(os.getenv('RECEIVER_IP'))
-RECEIVER_PORT = str(os.getenv('RECEIVER_PORT'))
+SENDER_IP = hex_to_bin(str(os.getenv('SENDER_IP')))
+SENDER_PORT = hex_to_bin(str(os.getenv('SENDER_PORT')))
+RECEIVER_IP = hex_to_bin(str(os.getenv('RECEIVER_IP')))
+RECEIVER_PORT = hex_to_bin(str(os.getenv('RECEIVER_PORT')))
 
 
 sender_addr = (SENDER_IP, SENDER_PORT)
